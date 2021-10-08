@@ -58,7 +58,7 @@ contract RebasingIbbtc is Initializable, ERC20Upgradeable {
     }
 
     /// ===== Permissioned: Oracle =====
-    function setPricePerShare(uint256 _pricePerShare) external onlyOracle {
+    function setPricePerShare(uint256 _pricePerShare) external virtual onlyOracle {
         pricePerShare = _pricePerShare;
         emit SetPricePerShare(pricePerShare);
     }
@@ -85,7 +85,7 @@ contract RebasingIbbtc is Initializable, ERC20Upgradeable {
 
     /// @dev Current account shares * pricePerShare
     function balanceOf(address account) public view override returns (uint256) {
-        sharesOf(account).mul(pricePerShare).div(1e18);
+        return sharesOf(account).mul(pricePerShare).div(1e18);
     }
 
     /// @dev Total wrapped ibBTC shares
@@ -96,5 +96,13 @@ contract RebasingIbbtc is Initializable, ERC20Upgradeable {
     /// @dev Current total shares * pricePerShare
     function totalSupply() public view override returns (uint256) {
         return totalShares().mul(pricePerShare).div(1e18);
+    }
+
+    function balanceToShares(uint256 balance) public view returns (uint256) {
+        return balance.mul(1e18).div(pricePerShare);
+    }
+
+    function sharesToBalance(uint256 balance) public view returns (uint256) {
+        return shares.mul(pricePerShare).div(1e18);
     }
 }
