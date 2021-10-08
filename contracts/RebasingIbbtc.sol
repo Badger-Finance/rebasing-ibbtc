@@ -72,7 +72,7 @@ contract RebasingIbbtc is Initializable, ERC20Upgradeable {
     }
 
     function burn(uint256 _shares) external {
-        _mint(_msgSender(), _shares);
+        _burn(_msgSender(), _shares);
         require(ibbtc.transfer(_msgSender(), _shares));
     }
 
