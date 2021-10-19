@@ -102,7 +102,7 @@ contract RebasingIbbtc is Initializable, ERC20Upgradeable {
         return balance.mul(1e18).div(pricePerShare);
     }
 
-    function sharesToBalance(uint256 balance) public view returns (uint256) {
+    function sharesToBalance(uint256 shares) public view returns (uint256) {
         return shares.mul(pricePerShare).div(1e18);
     }
 }

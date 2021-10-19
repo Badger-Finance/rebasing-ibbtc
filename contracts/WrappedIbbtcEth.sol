@@ -14,7 +14,6 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     ERC20Upgradeable public ibbtc; 
     ICore public core;
 
-    event SetOracle(address oracle);
     event SetPendingGovernance(address pendingGovernance);
     event AcceptPendingGovernance(address pendingGovernance);
 
