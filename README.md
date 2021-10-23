@@ -1,7 +1,7 @@
 # ibBTC Rebasing Wrapper
-The issue: ibBTC value vs crvRen will change over time within the metapool due to the yearn vault-like price per share mechanic. StableSwap invariant means you only get low or even reasonable slippage when the balances of both coins are very close. The variance between value will perpetually increase.
+When ibBTC is placed in a curve BTC metapool, the value of ibBTC tokens will deviate relative to the value of the Curve LP tokens. This is due to the yearn vault-like price per share mechanic of ibBTC. StableSwap invariant means you only get low or even reasonable slippage when the balances of both coins are very close. The variance between value may perpetually increase as ibBTC increases in value.
 
-While we develop a custom pool, this wrapper allows for the value of each ibBTC coin in the pool to remain equal to the underlying tokenized BTC collateral.
+While we develop a custom pool, this wrapper allows for the value of each ibBTC coin in the pool to remain equal to the underlying tokenized BTC collateral so that the metapool can function as intended.
 
 Introducing, **wibBTC**
 
