@@ -33,8 +33,22 @@ Introducing, **wibBTC**.
 A live instance of the wrapper can be found here (pending). It's using a proxy + logic split for upgradeability. 
 There is a test curve pool vs sbtc on Ethereum (pending), and a test pool vs ren on Polygon.
 
-# UX
+# UX Considerations
 Users need to convert ibBTC to wibBTC before depositing into curve pool. They then need to deposit values into the curve pool denominated in balances rather than shares.
+
+# CodeArena Spec
+4. How many external calls? 
+    * One, to ibBTC Core contract on ETH mainnet, and to a defined oracle address on other chains.
+5. Does it use an oracle?
+    * Yes, this is a custom ibBTC pricePerShare oracle in development by chainlink.
+6. Does the token conform to the ERC20 standard?
+    * Yes, with custom minting & burning functions. It's based on the OZ ERC20Upgradeable contract.
+12. Is it multichain?
+    * Yes in the sense that it reads oracle data from other chains when not used on ETH mainnet.
+13. Does it use a sidechain?
+    * It will exist on sidechains as per above
+13a. If yes, is the sidechain evm-compatible?
+    * Yes, it will only be present on EVM sidechains
 
 # Basic Sample Hardhat Project
 This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
