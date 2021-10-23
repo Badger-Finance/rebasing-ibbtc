@@ -1,31 +1,40 @@
 # ibBTC Rebasing Wrapper
-The issue: ibBTC value vs WBTC will change over time within the curve pool. StableSwap invariant means you only get low or even reasonable slippage when the balances of both coins are very close. The variance between value will perpetually increase.
+The issue: ibBTC value vs crvRen will change over time within the metapool due to the yearn vault-like price per share mechanic. StableSwap invariant means you only get low or even reasonable slippage when the balances of both coins are very close. The variance between value will perpetually increase.
+
+While we develop a custom pool, this wrapper allows for the value of each ibBTC coin in the pool to remain equal to the underlying tokenized BTC collateral.
 
 Introducing, **wibBTC**
 
-## Facts
-* totalShares is the number of ibBTC tokens in the wrapper
-* totalSupply is PPFS * totalShares
-* balanceOf(user) = userShares * PPFS
+## How it works
+* Users deposit ibBTC into the contract and are minted shares at 1-1 to the token value deposited. This value is tracked in `sharesOf(account)`
+* `totalShares()` is the number of ibBTC tokens in the wrapper
+* `totalSupply()` is ibBTC pricePerShare * totalShares. The total supply increases relative to the number of shares as the pricePerShare increases. This means 1 unit of wibBTC = 1 tokenized BTC in value.
+    * ibBTC pricePerShare is read directly from the ibBTC Core contract on Ethereum, and is read from an oracle on other chains.
+* `balanceOf(account)` = sharesOf(account) * pricePerShare. As per typical rebasing tokens, each accounts' balance scales
 
-When a user deposits ibBTC into the wrapper, they get the same number of shares as ibBTC tokens they deposit. Their balance is then dynamic based on the share amount, and PPFS.
+## Admin Functionality
+* Governance 
+* Governance can set a new pendingGovernance address, which must `acceptPendingGovernance()`
 
-PPFS is set by an oracle. 
-
-When a user withdraws from the wrapper to return to iBBTC, do they withdraw in iBBTC tokens or shares?
-
-Does ribBTC exist on ETH? It presumably will need representations on all chains we have a curve pool on.
 
 ## Risks
-* We introduce a trusted oracle. If it goes haywire and reports bad data, the pool could have 1000x the ribBTC, or 1/1000 the riBBTC, compared to iBBTC. What will happen in this case?
+* We introduce a trusted oracle on non-ETH chains. If it goes haywire and reports bad data, the pool could have 1000x the ribBTC, or 1/1000 the riBBTC, compared to iBBTC. What will happen in this case?
+* On Ethereum, if there's a pricePerShare bug in the ibBTC Core, what new considerations are introduced by the curve pool?
+* As with any rebaser we introduce precision loss / _dust_. Are there any concerns here?
 
-* As with any rebaser we introduce precision loss / _dust_. How does this simple rebasing calculation work as compared with Ampleforth?
+* What sanity checks to have on oracle?
+    * Ensure oracle value never changes by an extreme amount?
+    * Ensure oracle never goes down?
+    * What should happen IF ibBTC is legitimately exploited... Is it better to keep this value at the new value or the pre-exploit expected value?
+
+## Contracts
+A live instance of the wrapper can be found here (pending). It's using a proxy + logic split for upgradeability. 
+There is a test curve pool vs sbtc on Ethereum (pending), and a test pool vs ren on Polygon.
 
 # UX
-Users need to convert ibBTC to ribBTC before depositing into curve pool. They then need to deposit values into the curve pool denominated in balances rather than shares.
+Users need to convert ibBTC to wibBTC before depositing into curve pool. They then need to deposit values into the curve pool denominated in balances rather than shares.
 
 # Basic Sample Hardhat Project
-
 This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
 
 Try running some of the following tasks:
