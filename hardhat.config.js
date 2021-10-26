@@ -11,7 +11,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
-const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID || '2f1de898efb74331bf933d3ac469b98d';
+const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID;
 const ETHERSCAN_KEY = process.env.ETHERSCAN_KEY;
 
 const defaultNetwork = "hardhat";
