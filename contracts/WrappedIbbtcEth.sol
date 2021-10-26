@@ -35,6 +35,8 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
         governance = _governance;
         core = ICore(_core);
         ibbtc = ERC20Upgradeable(_ibbtc);
+
+        emit SetCore(_core);
     }
 
     /// ===== Permissioned: Governance =====
@@ -46,8 +48,8 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     /// @dev The ibBTC token is technically capable of having it's Core contract changed via governance process. This allows the wrapper to adapt.
     /// @dev This function should be run atomically with setCore() on ibBTC if that eventuality ever arises.
     function setCore(address _core) external onlyGovernance {
-        core = _core;
-        emit SetCore(core);
+        core = ICore(_core);
+        emit SetCore(_core);
     }
 
     /// ===== Permissioned: Pending Governance =====

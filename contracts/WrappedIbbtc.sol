@@ -42,6 +42,8 @@ contract WrappedIbbtc is Initializable, ERC20Upgradeable {
         governance = _governance;
         oracle = ICoreOracle(_oracle);
         ibbtc = ERC20Upgradeable(_ibbtc);
+
+        emit SetOracle(_oracle);
     }
 
     /// ===== Permissioned: Governance =====
@@ -51,8 +53,8 @@ contract WrappedIbbtc is Initializable, ERC20Upgradeable {
     }
 
     function setOracle(address _oracle) external onlyGovernance {
-        oracle = _oracle;
-        emit SetOracle(oracle);
+        oracle = ICoreOracle(_oracle);
+        emit SetOracle(_oracle);
     }
 
     /// ===== Permissioned: Pending Governance =====
