@@ -3,15 +3,18 @@ pragma solidity ^0.6.12;
 
 import "../deps/@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "./ICoreOracle.sol";
 
-contract RebasingIbbtc is Initializable, ERC20Upgradeable {
+/*
+    Wrapped Interest-Bearing Bitcoin (Non-Ethereum mainnet variant)
+*/
+contract WrappedIbbtc is Initializable, ERC20Upgradeable {
     address public governance;
     address public pendingGovernance;
     ERC20Upgradeable public ibbtc; 
-    address public oracle;
-    uint256 public pricePerShare;
 
-    event SetPricePerShare(uint256 pricePerShare);
+    ICoreOracle public oracle;
+
     event SetOracle(address oracle);
     event SetPendingGovernance(address pendingGovernance);
     event AcceptPendingGovernance(address pendingGovernance);
@@ -28,27 +31,28 @@ contract RebasingIbbtc is Initializable, ERC20Upgradeable {
     }
 
     modifier onlyOracle() {
-        require(msg.sender == oracle, "onlyOracle");
+        require(msg.sender == address(oracle), "onlyOracle");
         _;
     }
 
-    function initialize(string memory name, string memory symbol, address _governance, address _ibbtc, address _oracle) public initializer {
-        __ERC20_init(name, symbol);
+    function initialize(address _governance, address _ibbtc, address _oracle) public initializer {
+        __ERC20_init("Wrapped Interest-Bearing Bitcoin", "wibBTC");
         governance = _governance;
-        oracle = _oracle;
-
+        oracle = ICoreOracle(_oracle);
         ibbtc = ERC20Upgradeable(_ibbtc);
+
+        emit SetOracle(_oracle);
     }
 
     /// ===== Permissioned: Governance =====
-    function setOracle(address _oracle) external onlyGovernance {
-        oracle = _oracle;
-        emit SetOracle(oracle);
-    }
-
     function setPendingGovernance(address _pendingGovernance) external onlyGovernance {
         pendingGovernance = _pendingGovernance;
         emit SetPendingGovernance(pendingGovernance);
+    }
+
+    function setOracle(address _oracle) external onlyGovernance {
+        oracle = ICoreOracle(_oracle);
+        emit SetOracle(_oracle);
     }
 
     /// ===== Permissioned: Pending Governance =====
@@ -57,26 +61,26 @@ contract RebasingIbbtc is Initializable, ERC20Upgradeable {
         emit AcceptPendingGovernance(pendingGovernance);
     }
 
-    /// ===== Permissioned: Oracle =====
-    function setPricePerShare(uint256 _pricePerShare) external virtual onlyOracle {
-        pricePerShare = _pricePerShare;
-        emit SetPricePerShare(pricePerShare);
-    }
-
     /// ===== Permissionless Calls =====
 
-    /// @dev Transfer ibBTC to mint the equivalent number of ribBTC shares
+    /// @dev Deposit ibBTC to mint wibBTC shares
     function mint(uint256 _shares) external {
         require(ibbtc.transferFrom(_msgSender(), address(this), _shares));
         _mint(_msgSender(), _shares);
     }
 
+    /// @dev Redeem wibBTC for ibBTC. Denominated in shares.
     function burn(uint256 _shares) external {
         _burn(_msgSender(), _shares);
         require(ibbtc.transfer(_msgSender(), _shares));
     }
 
     ///// ===== View Methods =====
+
+    /// @dev Current pricePerShare read live from oracle
+    function pricePerShare() public view virtual returns (uint256) {
+        return oracle.pricePerShare();
+    }
 
     /// @dev Wrapped ibBTC shares of account
     function sharesOf(address account) public view returns (uint256) {
@@ -85,7 +89,7 @@ contract RebasingIbbtc is Initializable, ERC20Upgradeable {
 
     /// @dev Current account shares * pricePerShare
     function balanceOf(address account) public view override returns (uint256) {
-        return sharesOf(account).mul(pricePerShare).div(1e18);
+        return sharesOf(account).mul(pricePerShare()).div(1e18);
     }
 
     /// @dev Total wrapped ibBTC shares
@@ -95,14 +99,14 @@ contract RebasingIbbtc is Initializable, ERC20Upgradeable {
 
     /// @dev Current total shares * pricePerShare
     function totalSupply() public view override returns (uint256) {
-        return totalShares().mul(pricePerShare).div(1e18);
+        return totalShares().mul(pricePerShare()).div(1e18);
     }
 
     function balanceToShares(uint256 balance) public view returns (uint256) {
-        return balance.mul(1e18).div(pricePerShare);
+        return balance.mul(1e18).div(pricePerShare());
     }
 
     function sharesToBalance(uint256 shares) public view returns (uint256) {
-        return shares.mul(pricePerShare).div(1e18);
+        return shares.mul(pricePerShare()).div(1e18);
     }
 }

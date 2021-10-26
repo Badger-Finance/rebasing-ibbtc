@@ -12,8 +12,10 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     address public governance;
     address public pendingGovernance;
     ERC20Upgradeable public ibbtc; 
+    
     ICore public core;
 
+    event SetCore(address core);
     event SetPendingGovernance(address pendingGovernance);
     event AcceptPendingGovernance(address pendingGovernance);
 
@@ -33,6 +35,8 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
         governance = _governance;
         core = ICore(_core);
         ibbtc = ERC20Upgradeable(_ibbtc);
+
+        emit SetCore(_core);
     }
 
     /// ===== Permissioned: Governance =====
@@ -41,22 +45,28 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
         emit SetPendingGovernance(pendingGovernance);
     }
 
+    /// @dev The ibBTC token is technically capable of having it's Core contract changed via governance process. This allows the wrapper to adapt.
+    /// @dev This function should be run atomically with setCore() on ibBTC if that eventuality ever arises.
+    function setCore(address _core) external onlyGovernance {
+        core = ICore(_core);
+        emit SetCore(_core);
+    }
+
     /// ===== Permissioned: Pending Governance =====
     function acceptPendingGovernance() external onlyPendingGovernance {
         governance = pendingGovernance;
         emit AcceptPendingGovernance(pendingGovernance);
     }
 
-    
-
     /// ===== Permissionless Calls =====
 
-    /// @dev Transfer ibBTC to mint the equivalent number of wibBTC shares
+    /// @dev Deposit ibBTC to mint wibBTC shares
     function mint(uint256 _shares) external {
         require(ibbtc.transferFrom(_msgSender(), address(this), _shares));
         _mint(_msgSender(), _shares);
     }
 
+    /// @dev Redeem wibBTC for ibBTC. Denominated in shares.
     function burn(uint256 _shares) external {
         _burn(_msgSender(), _shares);
         require(ibbtc.transfer(_msgSender(), _shares));
@@ -64,7 +74,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
 
     ///// ===== View Methods =====
 
-    /// @dev Live ibBTC price per share
+    /// @dev Live ibBTC price per share from core
     function pricePerShare() public view virtual returns (uint256) {
         return core.pricePerShare();
     }
