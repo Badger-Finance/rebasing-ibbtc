@@ -95,7 +95,7 @@ contract WrappedIbbtc is Initializable, ERC20Upgradeable {
         uint256 amountInShares = balanceToShares(amount);
 
         _transfer(sender, recipient, amountInShares);
-        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(balanceToShares(amountInShares), "ERC20: transfer amount exceeds allowance"));
+        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amountInShares, "ERC20: transfer amount exceeds allowance"));
         return true;
     }
 
