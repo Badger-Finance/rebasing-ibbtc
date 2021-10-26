@@ -14,8 +14,6 @@ contract WrappedIbbtc is Initializable, ERC20Upgradeable {
     ERC20Upgradeable public ibbtc; 
 
     ICoreOracle public oracle;
-    uint256 public pricePerShare;
-    uint256 public lastOracleUpdate;
 
     event SetOracle(address oracle);
     event SetPendingGovernance(address pendingGovernance);
@@ -33,7 +31,7 @@ contract WrappedIbbtc is Initializable, ERC20Upgradeable {
     }
 
     modifier onlyOracle() {
-        require(msg.sender == oracle, "onlyOracle");
+        require(msg.sender == address(oracle), "onlyOracle");
         _;
     }
 
