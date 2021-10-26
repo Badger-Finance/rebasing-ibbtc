@@ -99,4 +99,7 @@ module.exports = {
   etherscan: {
     apiKey: ETHERSCAN_KEY,
   },
+  mocha: {
+    timeout: 40000
+  }
 };
