@@ -72,7 +72,49 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
         require(ibbtc.transfer(_msgSender(), _shares));
     }
 
-    ///// ===== View Methods =====
+    /// ===== Transfer Overrides =====
+    /**
+     * @dev See {IERC20-transferFrom}.
+     *
+     * Emits an {Approval} event indicating the updated allowance. This is not
+     * required by the EIP. See the note at the beginning of {ERC20};
+     *
+     * Requirements:
+     * - `sender` and `recipient` cannot be the zero address.
+     * - `sender` must have a balance of at least `amount`.
+     * - the caller must have allowance for ``sender``'s tokens of at least
+     * `amount`.
+     */
+    function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
+        /// @dev the _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
+        /// @dev the naming confusion is due to maintaining original ERC20 code as much as possible
+
+        uint256 amountInShares = balanceToShares(amount);
+
+        _transfer(sender, recipient, amountInShares);
+        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(balanceToShares(amountInShares), "ERC20: transfer amount exceeds allowance"));
+        return true;
+    }
+
+    /**
+     * @dev See {IERC20-transfer}.
+     *
+     * Requirements:
+     *
+     * - `recipient` cannot be the zero address.
+     * - the caller must have a balance of at least `amount`.
+     */
+    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+        /// @dev the _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
+        /// @dev the naming confusion is due to maintaining original ERC20 code as much as possible
+
+        uint256 amountInShares = balanceToShares(amount);
+
+        _transfer(_msgSender(), recipient, amountInShares);
+        return true;
+    }
+
+    /// ===== View Methods =====
 
     /// @dev Live ibBTC price per share from core
     function pricePerShare() public view virtual returns (uint256) {
