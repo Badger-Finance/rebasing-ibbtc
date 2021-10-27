@@ -15,7 +15,11 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     
     ICore public core;
 
+    uint256 public pricePerShare;
+    uint256 public lastPricePerShareUpdate;
+
     event SetCore(address core);
+    event SetPricePerShare(uint256 pricePerShare, uint256 updateTimestamp);
     event SetPendingGovernance(address pendingGovernance);
     event AcceptPendingGovernance(address pendingGovernance);
 
@@ -35,6 +39,8 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
         governance = _governance;
         core = ICore(_core);
         ibbtc = ERC20Upgradeable(_ibbtc);
+
+        updatePricePerShare();
 
         emit SetCore(_core);
     }
@@ -59,6 +65,16 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     }
 
     /// ===== Permissionless Calls =====
+
+    /// @dev Update live ibBTC price per share from core
+    /// @dev We cache this to reduce gas costs of mint / burn / transfer operations.
+    /// @dev Update function is permissionless, and must be updated at least once every X time as a sanity check to ensure value is up-to-date
+    function updatePricePerShare() public virtual returns (uint256) {
+        pricePerShare = core.pricePerShare();
+        lastPricePerShareUpdate = now;
+
+        emit SetPricePerShare(pricePerShare, lastPricePerShareUpdate);
+    }
 
     /// @dev Deposit ibBTC to mint wibBTC shares
     function mint(uint256 _shares) external {
@@ -86,8 +102,8 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
      * `amount`.
      */
     function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
-        /// @dev the _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
-        /// @dev the naming confusion is due to maintaining original ERC20 code as much as possible
+        /// The _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
+        /// Some naming confusion emerges due to maintaining original ERC20 var names
 
         uint256 amountInShares = balanceToShares(amount);
 
@@ -105,8 +121,8 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
      * - the caller must have a balance of at least `amount`.
      */
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
-        /// @dev the _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
-        /// @dev the naming confusion is due to maintaining original ERC20 code as much as possible
+        /// The _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
+        /// Some naming confusion emerges due to maintaining original ERC20 var names
 
         uint256 amountInShares = balanceToShares(amount);
 
@@ -116,11 +132,6 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
 
     /// ===== View Methods =====
 
-    /// @dev Live ibBTC price per share from core
-    function pricePerShare() public view virtual returns (uint256) {
-        return core.pricePerShare();
-    }
-
     /// @dev Wrapped ibBTC shares of account
     function sharesOf(address account) public view returns (uint256) {
         return _balances[account];
@@ -128,7 +139,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
 
     /// @dev Current account shares * pricePerShare
     function balanceOf(address account) public view override returns (uint256) {
-        return sharesOf(account).mul(pricePerShare()).div(1e18);
+        return sharesOf(account).mul(pricePerShare).div(1e18);
     }
 
     /// @dev Total wrapped ibBTC shares
@@ -138,14 +149,14 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
 
     /// @dev Current total shares * pricePerShare
     function totalSupply() public view override returns (uint256) {
-        return totalShares().mul(pricePerShare()).div(1e18);
+        return totalShares().mul(pricePerShare).div(1e18);
     }
 
     function balanceToShares(uint256 balance) public view returns (uint256) {
-        return balance.mul(1e18).div(pricePerShare());
+        return balance.mul(1e18).div(pricePerShare);
     }
 
     function sharesToBalance(uint256 shares) public view returns (uint256) {
-        return shares.mul(pricePerShare()).div(1e18);
+        return shares.mul(pricePerShare).div(1e18);
     }
 }
