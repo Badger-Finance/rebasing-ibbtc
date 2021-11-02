@@ -71,7 +71,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     /// @dev Update function is permissionless, and must be updated at least once every X time as a sanity check to ensure value is up-to-date
     function updatePricePerShare() public virtual returns (uint256) {
         pricePerShare = core.pricePerShare();
-        lastPricePerShareUpdate = now;
+        lastPricePerShareUpdate = block.timestamp;
 
         emit SetPricePerShare(pricePerShare, lastPricePerShareUpdate);
     }
