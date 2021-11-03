@@ -3,15 +3,17 @@ pragma solidity ^0.6.12;
 
 import "../deps/@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "../deps/@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "./ICore.sol";
 
 /*
     Wrapped Interest-Bearing Bitcoin (Ethereum mainnet variant)
 */
-contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
+contract WrappedIbbtcEth is Initializable, ERC20Upgradeable, PausableUpgradeable {
     address public governance;
     address public pendingGovernance;
-    ERC20Upgradeable public ibbtc; 
+    IERC20Upgradeable public ibbtc;
     
     ICore public core;
 
@@ -35,10 +37,11 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     }
 
     function initialize(address _governance, address _ibbtc, address _core) public initializer {
+        require(msg.sender == 0xDA25ee226E534d868f0Dd8a459536b03fEE9079b); // dev: only verified deployer
         __ERC20_init("Wrapped Interest-Bearing Bitcoin", "wibBTC");
         governance = _governance;
         core = ICore(_core);
-        ibbtc = ERC20Upgradeable(_ibbtc);
+        ibbtc = IERC20Upgradeable(_ibbtc);
 
         updatePricePerShare();
 
@@ -59,6 +62,14 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
         emit SetCore(_core);
     }
 
+    function pause() external onlyGovernance {
+        _pause();
+    }
+
+    function unpause() external onlyGovernance {
+        _unpause();
+    }
+
     /// ===== Permissioned: Pending Governance =====
     function acceptPendingGovernance() external onlyPendingGovernance {
         governance = pendingGovernance;
@@ -71,26 +82,33 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     /// @dev Update live ibBTC price per share from core
     /// @dev We cache this to reduce gas costs of mint / burn / transfer operations.
     /// @dev Update function is permissionless, and must be updated at least once every X time as a sanity check to ensure value is up-to-date
-    function updatePricePerShare() public virtual returns (uint256) {
+    function updatePricePerShare() public whenNotPaused returns (uint256) {
         pricePerShare = core.pricePerShare();
         lastPricePerShareUpdate = block.timestamp;
 
         emit SetPricePerShare(pricePerShare, lastPricePerShareUpdate);
+        return pricePerShare;
     }
 
     /// @dev Deposit ibBTC to mint wibBTC shares
-    function mint(uint256 _shares) external {
+    function mint(uint256 _shares) external whenNotPaused {
+        if (_shares == 0) {
+            return;
+        }
         require(ibbtc.transferFrom(_msgSender(), address(this), _shares));
         _mint(_msgSender(), _shares);
     }
 
     /// @dev Redeem wibBTC for ibBTC. Denominated in shares.
-    function burn(uint256 _shares) external {
+    function burn(uint256 _shares) external whenNotPaused {
+        if (_shares == 0) {
+            return;
+        }
         _burn(_msgSender(), _shares);
         require(ibbtc.transfer(_msgSender(), _shares));
     }
 
-    /// ===== Transfer Overrides =====
+    /// ===== ERC20Upgradeable Overrides =====
     /**
      * @dev See {IERC20-transferFrom}.
      *
@@ -103,13 +121,15 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
      * - the caller must have allowance for ``sender``'s tokens of at least
      * `amount`.
      */
-    function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
+    function transferFrom(address sender, address recipient, uint256 amount) public override whenNotPaused returns (bool) {
         /// The _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
         /// Some naming confusion emerges due to maintaining original ERC20 var names
 
-        uint256 amountInShares = balanceToShares(amount);
+        if (amount == 0) {
+            return true;
+        }
 
-        _transfer(sender, recipient, amountInShares);
+        _transfer(sender, recipient, amount);
         _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
         return true;
     }
@@ -122,13 +142,15 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+    function transfer(address recipient, uint256 amount) public override whenNotPaused returns (bool) {
         /// The _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
         /// Some naming confusion emerges due to maintaining original ERC20 var names
 
-        uint256 amountInShares = balanceToShares(amount);
-
-        _transfer(_msgSender(), recipient, amountInShares);
+        if (amount == 0) {
+            return true;
+        }
+        
+        _transfer(_msgSender(), recipient, amount);
         return true;
     }
 
@@ -147,15 +169,63 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
      * - `sender` must have a balance of at least `amount`.
      * - `amount` must be in shares
      */
-    function _transfer(address sender, address recipient, uint256 amount) internal virtual override {
+    function _transfer(address sender, address recipient, uint256 amount) internal override {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
         _beforeTokenTransfer(sender, recipient, amount);
 
-        _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
-        _balances[recipient] = _balances[recipient].add(amount);
-        emit Transfer(sender, recipient, sharesToBalance(amount));
+        uint256 shares = balanceToShares(amount);
+        _balances[sender] = _balances[sender].sub(shares, "ERC20: transfer amount exceeds balance");
+        _balances[recipient] = _balances[recipient].add(shares);
+
+        emit Transfer(sender, recipient, amount);
+    }
+
+    /** @dev Creates `amount` tokens and assigns them to `account`, increasing
+     * the total supply.
+     *
+     * Emits a {Transfer} event with `from` set to the zero address.
+     *
+     * Requirements
+     *
+     * - `to` cannot be the zero address.
+     */
+    function _mint(address account, uint256 shares) internal override {
+        require(account != address(0), "ERC20: mint to the zero address");
+
+        uint256 amount = sharesToBalance(shares);
+
+        _beforeTokenTransfer(address(0), account, amount);
+
+        _totalSupply = _totalSupply.add(shares);
+        _balances[account] = _balances[account].add(shares);
+
+        emit Transfer(address(0), account, amount);
+    }
+
+    /**
+     * @dev Destroys `amount` tokens from `account`, reducing the
+     * total supply.
+     *
+     * Emits a {Transfer} event with `to` set to the zero address.
+     *
+     * Requirements
+     *
+     * - `account` cannot be the zero address.
+     * - `account` must have at least `amount` tokens.
+     */
+    function _burn(address account, uint256 shares) internal override {
+        require(account != address(0), "ERC20: burn from the zero address");
+        
+        uint256 amount = sharesToBalance(shares);
+
+        _beforeTokenTransfer(account, address(0), amount);
+
+        _balances[account] = _balances[account].sub(shares, "ERC20: burn amount exceeds balance");
+        _totalSupply = _totalSupply.sub(shares);
+
+        emit Transfer(account, address(0), amount);
     }
 
     /// ===== View Methods =====
