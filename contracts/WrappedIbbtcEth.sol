@@ -47,6 +47,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
 
     /// ===== Permissioned: Governance =====
     function setPendingGovernance(address _pendingGovernance) external onlyGovernance {
+        require(_pendingGovernance != governance);
         pendingGovernance = _pendingGovernance;
         emit SetPendingGovernance(pendingGovernance);
     }
@@ -61,7 +62,8 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     /// ===== Permissioned: Pending Governance =====
     function acceptPendingGovernance() external onlyPendingGovernance {
         governance = pendingGovernance;
-        emit AcceptPendingGovernance(pendingGovernance);
+        pendingGovernance = address(0);
+        emit AcceptPendingGovernance(governance);
     }
 
     /// ===== Permissionless Calls =====
