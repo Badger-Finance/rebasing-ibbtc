@@ -37,6 +37,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable, PausableUpgradeable
     }
 
     function initialize(address _governance, address _ibbtc, address _core) public initializer {
+        require(msg.sender == 0xDA25ee226E534d868f0Dd8a459536b03fEE9079b); // dev: only verified deployer
         __ERC20_init("Wrapped Interest-Bearing Bitcoin", "wibBTC");
         governance = _governance;
         core = ICore(_core);
