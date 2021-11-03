@@ -72,7 +72,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     /// @dev Update live ibBTC price per share from core
     /// @dev We cache this to reduce gas costs of mint / burn / transfer operations.
     /// @dev Update function is permissionless, and must be updated at least once every X time as a sanity check to ensure value is up-to-date
-    function updatePricePerShare() public virtual returns (uint256) {
+    function updatePricePerShare() public returns (uint256) {
         pricePerShare = core.pricePerShare();
         lastPricePerShareUpdate = block.timestamp;
 
@@ -110,7 +110,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
      * - the caller must have allowance for ``sender``'s tokens of at least
      * `amount`.
      */
-    function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
+    function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
         /// The _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
         /// Some naming confusion emerges due to maintaining original ERC20 var names
 
@@ -133,7 +133,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
         /// The _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
         /// Some naming confusion emerges due to maintaining original ERC20 var names
 
@@ -162,7 +162,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
      * - `sender` must have a balance of at least `amount`.
      * - `amount` must be in shares
      */
-    function _transfer(address sender, address recipient, uint256 amount) internal virtual override {
+    function _transfer(address sender, address recipient, uint256 amount) internal override {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
