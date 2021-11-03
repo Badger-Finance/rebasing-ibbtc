@@ -4,12 +4,13 @@ pragma solidity ^0.6.12;
 import "../deps/@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "../deps/@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "./ICore.sol";
 
 /*
     Wrapped Interest-Bearing Bitcoin (Ethereum mainnet variant)
 */
-contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
+contract WrappedIbbtcEth is Initializable, ERC20Upgradeable, PausableUpgradeable {
     address public governance;
     address public pendingGovernance;
     IERC20Upgradeable public ibbtc;
@@ -60,6 +61,14 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
         emit SetCore(_core);
     }
 
+    function pause() external onlyGovernance {
+        _pause();
+    }
+
+    function unpause() external onlyGovernance {
+        _unpause();
+    }
+
     /// ===== Permissioned: Pending Governance =====
     function acceptPendingGovernance() external onlyPendingGovernance {
         governance = pendingGovernance;
@@ -72,7 +81,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     /// @dev Update live ibBTC price per share from core
     /// @dev We cache this to reduce gas costs of mint / burn / transfer operations.
     /// @dev Update function is permissionless, and must be updated at least once every X time as a sanity check to ensure value is up-to-date
-    function updatePricePerShare() public returns (uint256) {
+    function updatePricePerShare() public whenNotPaused returns (uint256) {
         pricePerShare = core.pricePerShare();
         lastPricePerShareUpdate = block.timestamp;
 
@@ -80,7 +89,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     }
 
     /// @dev Deposit ibBTC to mint wibBTC shares
-    function mint(uint256 _shares) external {
+    function mint(uint256 _shares) external whenNotPaused {
         if (_shares == 0) {
             return;
         }
@@ -89,7 +98,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     }
 
     /// @dev Redeem wibBTC for ibBTC. Denominated in shares.
-    function burn(uint256 _shares) external {
+    function burn(uint256 _shares) external whenNotPaused {
         if (_shares == 0) {
             return;
         }
@@ -110,7 +119,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
      * - the caller must have allowance for ``sender``'s tokens of at least
      * `amount`.
      */
-    function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
+    function transferFrom(address sender, address recipient, uint256 amount) public override whenNotPaused returns (bool) {
         /// The _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
         /// Some naming confusion emerges due to maintaining original ERC20 var names
 
@@ -133,7 +142,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount) public override returns (bool) {
+    function transfer(address recipient, uint256 amount) public override whenNotPaused returns (bool) {
         /// The _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
         /// Some naming confusion emerges due to maintaining original ERC20 var names
 
