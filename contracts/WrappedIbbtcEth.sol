@@ -128,9 +128,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable, PausableUpgradeable
             return true;
         }
 
-        uint256 amountInShares = balanceToShares(amount);
-
-        _transfer(sender, recipient, amountInShares);
+        _transfer(sender, recipient, amount);
         _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
         return true;
     }
@@ -150,10 +148,8 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable, PausableUpgradeable
         if (amount == 0) {
             return true;
         }
-
-        uint256 amountInShares = balanceToShares(amount);
-
-        _transfer(_msgSender(), recipient, amountInShares);
+        
+        _transfer(_msgSender(), recipient, amount);
         return true;
     }
 
@@ -178,9 +174,11 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable, PausableUpgradeable
 
         _beforeTokenTransfer(sender, recipient, amount);
 
-        _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
-        _balances[recipient] = _balances[recipient].add(amount);
-        emit Transfer(sender, recipient, sharesToBalance(amount));
+        uint256 shares = balanceToShares(amount);
+        _balances[sender] = _balances[sender].sub(shares, "ERC20: transfer amount exceeds balance");
+        _balances[recipient] = _balances[recipient].add(shares);
+
+        emit Transfer(sender, recipient, amount);
     }
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
@@ -192,14 +190,17 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable, PausableUpgradeable
      *
      * - `to` cannot be the zero address.
      */
-    function _mint(address account, uint256 amount) internal override {
+    function _mint(address account, uint256 shares) internal override {
         require(account != address(0), "ERC20: mint to the zero address");
+
+        uint256 amount = sharesToBalance(shares);
 
         _beforeTokenTransfer(address(0), account, amount);
 
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
-        emit Transfer(address(0), account, balanceToShares(amount));
+        _totalSupply = _totalSupply.add(shares);
+        _balances[account] = _balances[account].add(shares);
+
+        emit Transfer(address(0), account, amount);
     }
 
     /**
@@ -213,14 +214,17 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable, PausableUpgradeable
      * - `account` cannot be the zero address.
      * - `account` must have at least `amount` tokens.
      */
-    function _burn(address account, uint256 amount) internal virtual {
+    function _burn(address account, uint256 shares) internal virtual {
         require(account != address(0), "ERC20: burn from the zero address");
+        
+        uint256 amount = sharesToBalance(shares);
 
         _beforeTokenTransfer(account, address(0), amount);
 
-        _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
-        _totalSupply = _totalSupply.sub(amount);
-        emit Transfer(account, address(0), balanceToShares(amount));
+        _balances[account] = _balances[account].sub(shares, "ERC20: burn amount exceeds balance");
+        _totalSupply = _totalSupply.sub(shares);
+
+        emit Transfer(account, address(0), amount);
     }
 
     /// ===== View Methods =====
