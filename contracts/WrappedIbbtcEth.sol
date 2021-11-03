@@ -3,6 +3,7 @@ pragma solidity ^0.6.12;
 
 import "../deps/@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./ICore.sol";
 
 /*
@@ -11,7 +12,7 @@ import "./ICore.sol";
 contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     address public governance;
     address public pendingGovernance;
-    ERC20Upgradeable public ibbtc; 
+    IERC20Upgradeable public ibbtc;
     
     ICore public core;
 
@@ -38,7 +39,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
         __ERC20_init("Wrapped Interest-Bearing Bitcoin", "wibBTC");
         governance = _governance;
         core = ICore(_core);
-        ibbtc = ERC20Upgradeable(_ibbtc);
+        ibbtc = IERC20Upgradeable(_ibbtc);
 
         updatePricePerShare();
 
