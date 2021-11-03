@@ -87,6 +87,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable, PausableUpgradeable
         lastPricePerShareUpdate = block.timestamp;
 
         emit SetPricePerShare(pricePerShare, lastPricePerShareUpdate);
+        return pricePerShare;
     }
 
     /// @dev Deposit ibBTC to mint wibBTC shares
