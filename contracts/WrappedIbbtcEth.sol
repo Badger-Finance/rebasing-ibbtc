@@ -214,7 +214,7 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable, PausableUpgradeable
      * - `account` cannot be the zero address.
      * - `account` must have at least `amount` tokens.
      */
-    function _burn(address account, uint256 shares) internal virtual {
+    function _burn(address account, uint256 shares) internal override {
         require(account != address(0), "ERC20: burn from the zero address");
         
         uint256 amount = sharesToBalance(shares);
