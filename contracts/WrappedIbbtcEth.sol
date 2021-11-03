@@ -80,12 +80,18 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
 
     /// @dev Deposit ibBTC to mint wibBTC shares
     function mint(uint256 _shares) external {
+        if (_shares == 0) {
+            return;
+        }
         require(ibbtc.transferFrom(_msgSender(), address(this), _shares));
         _mint(_msgSender(), _shares);
     }
 
     /// @dev Redeem wibBTC for ibBTC. Denominated in shares.
     function burn(uint256 _shares) external {
+        if (_shares == 0) {
+            return;
+        }
         _burn(_msgSender(), _shares);
         require(ibbtc.transfer(_msgSender(), _shares));
     }
@@ -107,6 +113,10 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
         /// The _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
         /// Some naming confusion emerges due to maintaining original ERC20 var names
 
+        if (amount == 0) {
+            return true;
+        }
+
         uint256 amountInShares = balanceToShares(amount);
 
         _transfer(sender, recipient, amountInShares);
@@ -125,6 +135,10 @@ contract WrappedIbbtcEth is Initializable, ERC20Upgradeable {
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
         /// The _balances mapping represents the underlying ibBTC shares ("non-rebased balances")
         /// Some naming confusion emerges due to maintaining original ERC20 var names
+
+        if (amount == 0) {
+            return true;
+        }
 
         uint256 amountInShares = balanceToShares(amount);
 
